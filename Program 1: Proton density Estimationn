@@ -1,0 +1,27 @@
+###
+%Proton density Estimation of a single slice
+% iField is the complex data of dimension [Nrow Ncolmn Slices Nechoes] / first two dimension reprsents the Number of rows and coloumns in each slices,
+% Third dimension represents the number of slices 
+% Fourth dimension shows the number of Echos. 
+% Mask is generated using a function in MEDI Toolbox
+
+Data=squeeze(iField(:,:,30,1)); %---selected first echo of 3Oth slice 
+Y=abs(Data.*Mask(:,:,30));....% Multiplied with mask to eliminate pixel outside the brain ROI
+RR=R2STAR;--------% R2STAR is the relaxation rate which may vary from 0 t0 60 Hz in each pixel.
+rho=zeros(size(iField,1),size(iField,2)); % initialize a empty matrix. 
+%--- For loop for optimizing each pixel --------where Rho_non_min is the function for nonlinear optimization-----
+for i=1:size(iField,1)
+    for j=1:size(iField,2)
+     y_pix=Y(i,j);
+     RR_pix=RR(i,j);
+    rho(i,j)=Rho_non_min(y_pix,RR_pix,TE1);
+    end
+end
+%---------function_call -------- To more details please go through the ReadMe file
+
+function rho=Rho_non_min(y_pix,RR_pix,TE1) %---function definition 
+RR_pix=double(RR_pix);
+y_pix=double(y_pix);
+TE1=double(TE1);
+func=@(rho)(rho*(exp(RR_pix*TE1))-y_pix);
+rho=lsqnonlin(func,500,0,2000);
